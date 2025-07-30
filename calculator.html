@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Steam vs CSFloat Calculator (Dark Mode Enhanced)</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: #f5f5f5;
+      --input-bg: #1e1e1e;
+      --border-color: #333;
+      --accent: #1b6ec2;
+    }
+
+    body.light {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --input-bg: #f0f0f0;
+      --border-color: #ccc;
+      --accent: #1b6ec2;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 15px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 10px;
+      width: 100%;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #155a9a;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    .better {
+      font-weight: bold;
+      color: #00e676;
+    }
+
+    .note {
+      font-size: 12px;
+      color: gray;
+      margin-bottom: 15px;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      bottom: 15px;
+      left: 15px;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      color: var(--text-color);
+    }
+
+    .theme-toggle input {
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body class="dark">
+
+  <div class="container">
+    <h2>Steam vs CSFloat Price Calculator</h2>
+
+    <label for="steamPrice">Steam Market Price:</label>
+    <input type="number" id="steamPrice" step="0.01" placeholder="e.g. 50">
+    <select id="steamCurrency">
+      <option value="USD" selected>USD ($)</option>
+      <option value="PLN">PLN (zł)</option>
+    </select>
+
+    <label for="csfloatPrice">CSFloat Market Price:</label>
+    <input type="number" id="csfloatPrice" step="0.01" placeholder="e.g. 43">
+    <select id="csfloatCurrency">
+      <option value="USD" selected>USD ($)</option>
+      <option value="PLN">PLN (zł)</option>
+    </select>
+
+    <label for="csfloatBuyerFee">CSFloat Buyer Fee (%) [e.g. 5]:</label>
+    <input type="number" id="csfloatBuyerFee" step="0.1" value="5">
+
+    <label for="csfloatSellerFee">CSFloat Seller Fee (%) [e.g. 5]:</label>
+    <input type="number" id="csfloatSellerFee" step="0.1" value="5">
+
+    <label for="outputCurrency">Show results in:</label>
+    <select id="outputCurrency" onchange="compare()">
+      <option value="USD" selected>USD ($)</option>
+      <option value="PLN">PLN (zł)</option>
+    </select>
+
+    <p><strong>Current USD → PLN:</strong> <span id="liveRate">Loading...</span></p>
+
+    <p class="note">Note: Steam takes 15% fee from sellers. CSFloat fees are configurable above.</p>
+
+    <button onclick="compare()">Compare</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <!-- Dark Mode Toggle -->
+  <div class="theme-toggle">
+    <input type="checkbox" id="themeToggle" checked onchange="toggleTheme()" />
+    <label for="themeToggle">Dark Mode</label>
+  </div>
+
+  <script>
+    let exchangeRate = 4.10;
+
+    function toggleTheme() {
+      const body = document.body;
+      const toggle = document.getElementById("themeToggle");
+      body.classList.toggle("light", !toggle.checked);
+    }
+
+    function convertToUSD(value, currency) {
+      return currency === "PLN" ? value / exchangeRate : value;
+    }
+
+    function convertFromUSD(valueUSD, toCurrency) {
+      return toCurrency === "PLN" ? valueUSD * exchangeRate : valueUSD;
+    }
+
+    function getSymbol(currency) {
+      return currency === "PLN" ? "zł" : "$";
+    }
+
+    function compare() {
+      const steamPrice = parseFloat(document.getElementById("steamPrice").value);
+      const steamCurrency = document.getElementById("steamCurrency").value;
+
+      const csfloatPrice = parseFloat(document.getElementById("csfloatPrice").value);
+      const csfloatCurrency = document.getElementById("csfloatCurrency").value;
+
+      const csfloatBuyerFee = parseFloat(document.getElementById("csfloatBuyerFee").value);
+      const csfloatSellerFee = parseFloat(document.getElementById("csfloatSellerFee").value);
+
+      const outputCurrency = document.getElementById("outputCurrency").value;
+      const symbol = getSymbol(outputCurrency);
+
+      if (
+        isNaN(steamPrice) || isNaN(csfloatPrice) ||
+        isNaN(csfloatBuyerFee) || isNaN(csfloatSellerFee)
+      ) {
+        document.getElementById("result").innerHTML = "Please fill in all fields correctly.";
+        return;
+      }
+
+      const steamPriceUSD = convertToUSD(steamPrice, steamCurrency);
+      const csfloatPriceUSD = convertToUSD(csfloatPrice, csfloatCurrency);
+
+      const steamBuyerPays = steamPriceUSD;
+      const steamSellerGets = steamPriceUSD * 0.85;
+
+      const csfloatBuyerPays = csfloatPriceUSD * (1 + csfloatBuyerFee / 100);
+      const csfloatSellerGets = csfloatPriceUSD * (1 - csfloatSellerFee / 100);
+
+      const cheaperPlatform = steamBuyerPays < csfloatBuyerPays ? "Steam" : "CSFloat";
+      const cheaperAmount = Math.abs(steamBuyerPays - csfloatBuyerPays);
+
+      const steamBuyerConverted = convertFromUSD(steamBuyerPays, outputCurrency).toFixed(2);
+      const csfloatBuyerConverted = convertFromUSD(csfloatBuyerPays, outputCurrency).toFixed(2);
+      const steamSellerConverted = convertFromUSD(steamSellerGets, outputCurrency).toFixed(2);
+      const csfloatSellerConverted = convertFromUSD(csfloatSellerGets, outputCurrency).toFixed(2);
+      const cheaperConverted = convertFromUSD(cheaperAmount, outputCurrency).toFixed(2);
+
+      document.getElementById("result").innerHTML = `
+        <p><strong>Buyer Comparison:</strong></p>
+        <ul>
+          <li>Steam buyer pays: ${steamBuyerConverted} ${symbol}</li>
+          <li>CSFloat buyer pays: ${csfloatBuyerConverted} ${symbol}</li>
+          <li class="better">${cheaperPlatform} is cheaper by ${cheaperConverted} ${symbol}</li>
+        </ul>
+        <p><strong>Seller Comparison:</strong></p>
+        <ul>
+          <li>Steam seller receives: ${steamSellerConverted} ${symbol}</li>
+          <li>CSFloat seller receives: ${csfloatSellerConverted} ${symbol}</li>
+        </ul>
+      `;
+    }
+
+    function handleExchangeRate(data) {
+      exchangeRate = data.rates.PLN;
+      document.getElementById("liveRate").textContent = exchangeRate.toFixed(4);
+      compare();
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://api.exchangerate.host/latest?base=USD&symbols=PLN&callback=handleExchangeRate";
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>
